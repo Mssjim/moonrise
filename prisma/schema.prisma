@@ -1,0 +1,41 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "sqlite"
+    url      = env("DATABASE_URL")
+}
+
+model Player {
+    id       String @id @default(cuid())
+    nickname String @unique
+    password String
+    email    String @unique
+    token    String @unique @default(uuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    lastLogin DateTime @default(now())
+    isOnline  Boolean @default(false)
+
+    moonDust   BigInt @default(0)
+    moonShards Int    @default(0)
+
+    coletaLevel  Int @default(0)
+    sondaLevel   Int @default(0)
+    motoresLevel Int @default(0)
+    prestigeColeta  Float @default(1.0)
+    prestigeSonda   Float @default(1.0)
+    prestigeMotores Float @default(1.0)
+
+    currentPlanetIndex   Int   @default(0) // 0=Terra, 1=Lua, etc.
+    progressToNextPlanet Float @default(0.0) // Valor de 0.0 a 1.0
+
+    roomId String?
+    room   Room?   @relation(fields: [roomId], references: [id])
+}
+
+model Room {
+    id      String   @id @default(cuid())
+    players Player[]
+}
