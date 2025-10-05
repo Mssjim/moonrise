@@ -15,7 +15,7 @@ export const PLANET_ROUTE = [
 export const UPGRADE_VALUES = {
     coleta: [1, 1.5, 2.25, 3.5, 5.0, 7.5, 11.5, 17.0, 25.5, 38.5, 60.0],
     sonda: [0, 1, 2, 4, 8, 12, 18, 27, 40, 60, 100],
-    motores: [1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.4, 2.8, 3.2, 3.6, 4.0]
+    motores: [1.0, 1.2, 1.5, 2.0, 2.5, 3.0, 4.0, 4.5, 5.0, 7.5, 10.0]
 };
 
 export const UPGRADE_COSTS = {

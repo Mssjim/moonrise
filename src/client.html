@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Cliente de Teste Moonrise</title>
+    <style>
+        body { font-family: sans-serif; background-color: #121212; color: #e0e0e0; display: flex; gap: 20px;}
+        fieldset { border: 1px solid #444; border-radius: 8px; }
+        legend { font-weight: bold; color: #0066cc; }
+        button { font-size: 1em; padding: 8px 12px; margin: 5px; cursor: pointer; background-color: #333; color: #fff; border: 1px solid #555; border-radius: 4px;}
+        button:disabled { cursor: not-allowed; opacity: 0.5; }
+        #main-actions { text-align: center; }
+        #clickerButton { font-size: 2em; padding: 20px; width: 100%; background-color: #0066cc; color: #121212; font-weight: bold; }
+        #rebirthBtn { background-color: #0066cc; }
+    </style>
+</head>
+<body>
+
+    <div id="game-panel">
+        <fieldset id="main-actions">
+            <legend>Ações Principais</legend>
+            <button id="clickerButton" disabled>Clique!</button>
+            <button id="rebirthBtn" disabled>Rebirth</button>
+        </fieldset>
+    
+        <fieldset id="upgrades">
+            <legend>Upgrades (Moon Dust)</legend>
+            <button id="buyColetaBtn">Arma de Coleta</button>
+            <button id="buySondaBtn">Sonda</button>
+            <button id="buyMotoresBtn">Motores</button>
+        </fieldset>
+
+        <fieldset id="prestige">
+            <legend>Prestígio (Moon Shards)</legend>
+            <button id="spendColetaBtn">Bonus Arma de Coleta</button>
+            <button id="spendSondaBtn">Bonus Sonda</button>
+            <button id="spendMotoresBtn">Bonus Motores</button>
+        </fieldset>
+    </div>
+
+    <div id="info-panel">
+        <fieldset>
+            <legend>Status</legend>
+            <div style="display: flex; align-items: baseline; gap: 10px;">
+                <h2 id="moonDustDisplay">Moon Dust: 0</h2>
+                <h4 id="fractionalMoonDustDisplay"></h4>
+            </div>
+            <h3 id="moonShardsDisplay">Moon Shards: 0</h3>
+            <hr>
+            <h4>Progresso</h4>
+            <p id="progressDisplay">Local: Terra</p>
+            <hr>
+            <h4>Níveis</h4>
+            <p id="coletaLevelDisplay">Arma de Coleta: Lvl 0</p>
+            <p id="sondaLevelDisplay">Sonda: Lvl 0</p>
+            <p id="motoresLevelDisplay">Motores: Lvl 0</p>
+            <hr>
+            <h4>Bônus de Prestígio</h4>
+            <p id="prestigeColetaDisplay">Coleta: 1.0x</p>
+            <p id="prestigeSondaDisplay">Sonda: 1.0x</p>
+            <p id="prestigeMotoresDisplay">Motores: 1.0x</p>
+        </fieldset>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        const socket = io('http://localhost:3000');
+        const MY_TOKEN = "b090df60-ea5f-4f95-9f8c-78cd4c135276";
+
+        //TODO Recover from gameData
+        const planetNames = ["Terra", "Lua", "Vênus", "Mercúrio", "Marte", "Júpiter", "Saturno", "Urano", "Netuno", "Plutão", "Sol"];
+        const UPGRADE_COSTS = {
+            coleta: {
+                1: 20n, 2: 100n, 3: 500n, 4: 2500n, 5: 10000n,
+                6: 50000n, 7: 200000n, 8: 800000n, 9: 3000000n, 10: 12000000n
+            },
+            sonda: {
+                1: 50n, 2: 250n, 3: 1200n, 4: 6000n, 5: 20000n,
+                6: 80000n, 7: 300000n, 8: 1200000n, 9: 4500000n, 10: 18000000n
+            },
+            motores: {
+                1: 100n, 2: 500n, 3: 2500n, 4: 12000n, 5: 50000n,
+                6: 200000n, 7: 800000n, 8: 3000000n, 9: 12000000n, 10: 50000000n
+            }
+        };
+
+        const displays = {
+            moonDust: document.getElementById('moonDustDisplay'),
+            fractionalMoonDust: document.getElementById('fractionalMoonDustDisplay'),
+            moonShards: document.getElementById('moonShardsDisplay'),
+            progress: document.getElementById('progressDisplay'),
+            coletaLevel: document.getElementById('coletaLevelDisplay'),
+            sondaLevel: document.getElementById('sondaLevelDisplay'),
+            motoresLevel: document.getElementById('motoresLevelDisplay'),
+            prestigeColeta: document.getElementById('prestigeColetaDisplay'),
+            prestigeSonda: document.getElementById('prestigeSondaDisplay'),
+            prestigeMotores: document.getElementById('prestigeMotoresDisplay'),
+        };
+        const buttons = {
+            clicker: document.getElementById('clickerButton'),
+            rebirth: document.getElementById('rebirthBtn'),
+            buyColeta: document.getElementById('buyColetaBtn'),
+            buySonda: document.getElementById('buySondaBtn'),
+            buyMotores: document.getElementById('buyMotoresBtn'),
+            spendColeta: document.getElementById('spendColetaBtn'),
+            spendSonda: document.getElementById('spendSondaBtn'),
+            spendMotores: document.getElementById('spendMotoresBtn'),
+        };
+
+        function updateUI(state) {
+            displays.moonDust.innerText = `Moon Dust: ${state.moonDust}`;
+            displays.fractionalMoonDust.innerText = state.fractionalMoonDust > 0 ? `.${state.fractionalMoonDust.toFixed(2).split('.')[1]}` : '';
+            displays.moonShards.innerText = `Moon Shards: ${state.moonShards}`;
+
+            const from = planetNames[state.currentPlanetIndex];
+            const to = planetNames[state.currentPlanetIndex + 1] || 'Destino Final';
+            const percentage = (state.progressToNextPlanet * 100).toFixed(2);
+            displays.progress.innerText = `Viagem: De ${from} para ${to} (${percentage}%)`;
+
+            displays.coletaLevel.innerText = `Arma de Coleta: Lvl ${state.coletaLevel}`;
+            displays.sondaLevel.innerText = `Sonda: Lvl ${state.sondaLevel}`;
+            displays.motoresLevel.innerText = `Motores: Lvl ${state.motoresLevel}`;
+            
+            displays.prestigeColeta.innerText = `Coleta: ${state.prestigeColeta.toFixed(1)}x`;
+            displays.prestigeSonda.innerText = `Sonda: ${state.prestigeSonda.toFixed(1)}x`;
+            displays.prestigeMotores.innerText = `Motores: ${state.prestigeMotores.toFixed(1)}x`;
+
+            buttons.buyColeta.innerText = `Arma de Coleta (${UPGRADE_COSTS.coleta[state.coletaLevel + 1] || 'MAX'} Dust)`;
+            buttons.buySonda.innerText = `Sonda (${UPGRADE_COSTS.sonda[state.sondaLevel + 1] || 'MAX'} Dust)`;
+            buttons.buyMotores.innerText = `Motores (${UPGRADE_COSTS.motores[state.motoresLevel + 1] || 'MAX'} Dust)`;
+
+            buttons.buyColeta.disabled = !UPGRADE_COSTS.coleta[state.coletaLevel + 1] || state.moonDust < UPGRADE_COSTS.coleta[state.coletaLevel + 1];
+            buttons.buySonda.disabled = !UPGRADE_COSTS.sonda[state.sondaLevel + 1] || state.moonDust < UPGRADE_COSTS.sonda[state.sondaLevel + 1];
+            buttons.buyMotores.disabled = !UPGRADE_COSTS.motores[state.motoresLevel + 1] || state.moonDust < UPGRADE_COSTS.motores[state.motoresLevel + 1];
+
+            buttons.rebirth.disabled = state.currentPlanetIndex < planetNames.length - 1;
+        }
+
+        socket.on('connect', () => {
+            console.log('Conectado!', socket.id);
+            socket.emit('player:authenticate', MY_TOKEN);
+        });
+
+        socket.on('player:authenticated', (playerData) => {
+            console.log('Autenticado!', playerData);
+            buttons.clicker.disabled = false;
+            updateUI(playerData);
+        });
+
+        socket.on('game:state', (gameState) => {
+            console.log('game-state:', gameState);
+            updateUI(gameState);
+        });
+
+        socket.on('server:error', (error) => console.error('ERRO:', error.message));
+
+        buttons.clicker.addEventListener('click', () => socket.emit('player:click'));
+        buttons.rebirth.addEventListener('click', () => socket.emit('player:rebirth'));
+        
+        buttons.buyColeta.addEventListener('click', () => socket.emit('player:buyUpgrade', { type: 'coleta' }));
+        buttons.buySonda.addEventListener('click', () => socket.emit('player:buyUpgrade', { type: 'sonda' }));
+        buttons.buyMotores.addEventListener('click', () => socket.emit('player:buyUpgrade', { type: 'motores' }));
+        
+        buttons.spendColeta.addEventListener('click', () => socket.emit('player:spendShard', { type: 'coleta' }));
+        buttons.spendSonda.addEventListener('click', () => socket.emit('player:spendShard', { type: 'sonda' }));
+        buttons.spendMotores.addEventListener('click', () => socket.emit('player:spendShard', { type: 'motores' }));
+    </script>
+</body>
+</html>

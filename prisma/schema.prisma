@@ -19,6 +19,7 @@ model Player {
     isOnline  Boolean @default(false)
 
     moonDust   BigInt @default(0)
+    fractionalMoonDust   Float @default(0.0) // "centavos" de moondust
     moonShards Int    @default(0)
 
     coletaLevel  Int @default(0)
