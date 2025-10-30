@@ -41,6 +41,8 @@ function removePlayerCredentials(player) {
     return safeData;
 }
 
+app.use(express.static(path.join(__dirname, 'public')));
+
 app.get('/server', (req, res) => {
     res.send('<h1>Servidor on!</h1>');
 });
@@ -172,7 +174,7 @@ io.on('connection', (socket) => {
 });
 
 const TICK_RATE = 1000;
-const AUTO_SAVE_TICKS = 15;
+const AUTO_SAVE_TICKS = 60;
 let tickCounter = 0;
 
 setInterval(() => {
