@@ -1,6 +1,7 @@
 import express from 'express';
 import http from 'http';
 import path from 'path';
+import cors from 'cors';
 import { fileURLToPath } from 'url';
 
 import { Server } from 'socket.io';
@@ -42,6 +43,7 @@ function removePlayerCredentials(player) {
 }
 
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors());
 
 app.get('/server', (req, res) => {
     res.send('<h1>Servidor on!</h1>');
